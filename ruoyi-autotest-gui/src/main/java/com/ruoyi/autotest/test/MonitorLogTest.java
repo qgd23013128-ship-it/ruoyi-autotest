@@ -29,7 +29,7 @@ public class MonitorLogTest {
 
     // ======================== 配置常量 ========================
 
-    private static final String BASE_URL = System.getProperty("ruoyi.base.url", "http://localhost:8080");
+    private static final String BASE_URL = System.getProperty("ruoyi.base.url", "http://localhost");
     private static final String LOGIN_URL = BASE_URL + "/login";
     private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration PAGE_LOAD_TIMEOUT = Duration.ofSeconds(15);

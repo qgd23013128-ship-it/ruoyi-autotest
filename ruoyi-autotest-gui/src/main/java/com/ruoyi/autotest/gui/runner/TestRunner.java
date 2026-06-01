@@ -20,7 +20,7 @@ import org.testng.xml.XmlTest;
 public class TestRunner {
 
     /** 若依系统的默认访问地址（可根据实际环境修改） */
-    private String baseUrl = "http://localhost:8080";
+    private String baseUrl = "http://localhost";
 
     /** 全部可用的测试方法名 */
     public static final String[] ALL_TEST_METHODS = {
