@@ -25,7 +25,7 @@ public class DictionaryTest {
     private static final String BASE_URL = System.getProperty("ruoyi.base.url", "http://localhost");
     private static final String LOGIN_URL = BASE_URL + "/login";
     private static final String LOGIN_USER = System.getProperty("ruoyi.login.username", "admin");
-    private static final String LOGIN_PASSWORD = System.getProperty("ruoyi.login.password", "12345");
+    private static final String LOGIN_PASSWORD = System.getProperty("ruoyi.login.password", "admin123");
     /** 若依内置字典类型：用户性别 */
     private static final String QUERY_DICT_TYPE = "sys_user_sex";
     /** 菜单显示/隐藏测试目标 */

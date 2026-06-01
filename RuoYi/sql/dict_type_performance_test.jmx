@@ -19,7 +19,7 @@
           </elementProp>
           <elementProp name="password" elementType="Argument">
             <stringProp name="Argument.name">password</stringProp>
-            <stringProp name="Argument.value">12345</stringProp>
+            <stringProp name="Argument.value">admin123</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="thread_count" elementType="Argument">
