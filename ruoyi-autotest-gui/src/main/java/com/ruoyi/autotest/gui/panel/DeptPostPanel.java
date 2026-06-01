@@ -19,6 +19,7 @@ import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -28,6 +29,7 @@ import javax.swing.UIManager;
 import javax.swing.text.DefaultCaret;
 
 import com.ruoyi.autotest.gui.runner.TestRunner;
+import com.ruoyi.autotest.gui.util.CsvCaseEditor;
 
 /**
  * 部门与岗位模块测试面板。
@@ -89,7 +91,7 @@ public class DeptPostPanel extends JPanel {
         panel.setBorder(BorderFactory.createTitledBorder(
             BorderFactory.createLineBorder(UIManager.getColor("Separator.foreground")),
             " 测试操作 "));
-        panel.setPreferredSize(new Dimension(0, 250));
+        panel.setPreferredSize(new Dimension(0, 310));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(6, 8, 6, 8);
@@ -152,6 +154,16 @@ public class DeptPostPanel extends JPanel {
 
         gbc.gridx = 0;
         gbc.gridy = 2;
+        gbc.gridwidth = 1;
+        JButton btnEditCases = createActionButton(
+            "编辑数据组合用例",
+            "前端编辑 testdata/deptpost/post_add_cases.csv",
+            new Color(120, 110, 70));
+        btnEditCases.addActionListener(e -> openCaseEditor());
+        panel.add(btnEditCases, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
         gbc.gridwidth = 3;
         panel.add(createConfigRow(), gbc);
 
@@ -259,9 +271,24 @@ public class DeptPostPanel extends JPanel {
             List.of("testDataDriven_AddPost25Cases"));
     }
 
+    private void openCaseEditor() {
+        appendLogSeparator("编辑数据组合用例");
+        SwingUtilities.invokeLater(() -> {
+            try {
+                CsvCaseEditor.showDialog(SwingUtilities.getWindowAncestor(this), this::appendLog);
+            } catch (Exception ex) {
+                appendLog("[ERROR] 打开数据组合用例编辑窗口失败: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this,
+                    "打开数据组合用例编辑窗口失败：" + ex.getMessage(),
+                    "打开失败",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        });
+    }
+
     private void runAllTests() {
         appendLogSeparator("运行全部测试（DeptPostTest 全部测试方法）");
-        new Thread(() -> testRunner.runAllMethods(TEST_CLASS)).start();
+        new Thread(() -> testRunner.runAllMethods(TEST_CLASS, this::appendLog)).start();
     }
 
     private void runPerformanceTest() {
@@ -350,7 +377,7 @@ public class DeptPostPanel extends JPanel {
         appendLogSeparator(title);
         appendLog("[测试类] " + TEST_CLASS);
         appendLog("[测试方法] " + String.join(", ", methodNames));
-        new Thread(() -> testRunner.runFilteredMethods(TEST_CLASS, methodNames)).start();
+        new Thread(() -> testRunner.runFilteredMethods(TEST_CLASS, methodNames, this::appendLog)).start();
     }
 
     private void appendLog(String message) {
