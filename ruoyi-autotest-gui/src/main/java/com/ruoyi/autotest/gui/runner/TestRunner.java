@@ -83,7 +83,7 @@ public class TestRunner {
      * @param methodNames 用户指定要运行的方法名列表（为 null 或空列表则运行全部）
      */
     public void runFilteredMethods(String className, List<String> methodNames) {
-        if (!checkEdgeDriver()) {
+        if (requiresEdgeDriver(className) && !checkEdgeDriver()) {
             return;
         }
 
@@ -129,7 +129,7 @@ public class TestRunner {
      * 运行测试类中的单个指定方法
      */
     public void runSingleMethod(String className, String methodName) {
-        if (!checkEdgeDriver()) {
+        if (requiresEdgeDriver(className) && !checkEdgeDriver()) {
             return;
         }
         runFilteredMethods(className, Collections.singletonList(methodName));
@@ -159,5 +159,9 @@ public class TestRunner {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException("无法加载测试类: " + className, e);
         }
+    }
+
+    private boolean requiresEdgeDriver(String className) {
+        return !"com.ruoyi.autotest.test.DeptPostTest".equals(className);
     }
 }
