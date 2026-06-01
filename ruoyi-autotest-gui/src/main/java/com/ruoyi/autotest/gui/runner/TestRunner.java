@@ -30,11 +30,18 @@ public class TestRunner {
     private String baseUrl = "http://localhost";
 
     public static final String[] ALL_TEST_METHODS = {
+        // 用户与权限模块（组长）
         "testSingleModule_Login",
         "testSingleModule_UserQuery",
         "testIntegration_Depth3_AddRole",
         "testIntegration_Depth4_AddUserAndAssign",
-        "testDataDriven_Login"
+        "testDataDriven_Login",
+        // 系统监控与日志模块（组员5）
+        "testSingleModule_OperLogQuery",
+        "testSingleModule_LoginLogQuery",
+        "testIntegration_Depth3_CleanLog",
+        "testIntegration_Depth4_ForceLogout",
+        "testDataDriven_OperLogSearch"
     };
 
     public String getBaseUrl() {
