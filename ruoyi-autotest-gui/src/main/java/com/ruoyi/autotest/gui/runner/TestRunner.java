@@ -31,6 +31,24 @@ public class TestRunner {
         "testDataDriven_Login"
     };
 
+    /** 字典模块全部可用的测试方法名 */
+    public static final String[] DICT_TEST_METHODS = {
+        "testSingleModule_DictTypeQuery",
+        "testSingleModule_DictDataDeactivation",
+        "testIntegration_Depth3_MenuDisplayToggle",
+        "testIntegration_Depth4_AddDictData",
+        "testDataDriven_DictDataValidation"
+    };
+
+    /** 字典模块测试项说明（对应 2.1 ~ 2.4） */
+    public static final String[] DICT_TEST_DESCRIPTIONS = {
+        "2.1 单模块 - 字典类型查询（按字典类型字段）",
+        "2.1 单模块 - 字典数据停用（编辑已启用数据）",
+        "2.2 集成深度3 - 菜单隐藏（编辑已显示菜单）",
+        "2.2 集成深度4 - 字典管理新增键值",
+        "2.4 数据驱动 - 25组新增字典数据校验"
+    };
+
     public String getBaseUrl() {
         return baseUrl;
     }

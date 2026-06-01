@@ -8,7 +8,7 @@ spring:
             master:
                 url: jdbc:mysql://localhost:3306/test?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
                 username: root
-                password: 123456
+                password: Hcl009398
             # 从库数据源
             slave:
                 # 从数据源开关/默认关闭
@@ -48,7 +48,7 @@ spring:
                 url-pattern: /druid/*
                 # 控制台管理用户名和密码
                 login-username: ruoyi
-                login-password: 123456
+                login-password: Hcl009398
             filter:
                 stat:
                     enabled: true

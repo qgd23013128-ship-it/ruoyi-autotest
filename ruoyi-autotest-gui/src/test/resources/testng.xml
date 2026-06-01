@@ -34,4 +34,36 @@
         </classes>
     </test>
 
+    <test name="字典模块 - 单模块测试">
+        <classes>
+            <class name="com.ruoyi.autotest.test.DictionaryTest">
+                <methods>
+                    <include name="testSingleModule_DictTypeQuery"/>
+                    <include name="testSingleModule_DictDataDeactivation"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="字典模块 - 集成测试">
+        <classes>
+            <class name="com.ruoyi.autotest.test.DictionaryTest">
+                <methods>
+                    <include name="testIntegration_Depth3_MenuDisplayToggle"/>
+                    <include name="testIntegration_Depth4_AddDictData"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="字典模块 - 数据驱动测试">
+        <classes>
+            <class name="com.ruoyi.autotest.test.DictionaryTest">
+                <methods>
+                    <include name="testDataDriven_DictDataValidation"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
 </suite>

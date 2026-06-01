@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="DictModuleSuite" verbose="1" parallel="none">
+
+    <test name="2.1 Single Module Tests">
+        <classes>
+            <class name="com.ruoyi.autotest.test.DictionaryTest">
+                <methods>
+                    <include name="testSingleModule_DictTypeQuery"/>
+                    <include name="testSingleModule_DictDataDeactivation"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="2.2 Integration Tests">
+        <classes>
+            <class name="com.ruoyi.autotest.test.DictionaryTest">
+                <methods>
+                    <include name="testIntegration_Depth3_MenuDisplayToggle"/>
+                    <include name="testIntegration_Depth4_AddDictData"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="2.4 Data Driven Tests">
+        <classes>
+            <class name="com.ruoyi.autotest.test.DictionaryTest">
+                <methods>
+                    <include name="testDataDriven_DictDataValidation"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+</suite>
