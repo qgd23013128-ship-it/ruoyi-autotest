@@ -1,0 +1,36 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="若依管理系统 - 参数与通知公告模块测试套件" parallel="none">
+    <test name="单模块测试">
+        <classes>
+            <class name="com.ruoyi.test.SingleModuleTest">
+                <methods>
+                    <include name="testConfigQueryByName"/>
+                    <include name="testConfigQueryByKey"/>
+                    <include name="testNoticeQueryList"/>
+                    <include name="testNoticeQueryByTitle"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="集成模块测试">
+        <classes>
+            <class name="com.ruoyi.test.IntegrationTest">
+                <methods>
+                    <include name="testAddNoticeDeep3"/>
+                    <include name="testModifyConfigDeep4"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="数据驱动测试">
+        <classes>
+            <class name="com.ruoyi.test.DataDrivenTest">
+                <methods>
+                    <include name="testAddNoticeDataDriven"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>
