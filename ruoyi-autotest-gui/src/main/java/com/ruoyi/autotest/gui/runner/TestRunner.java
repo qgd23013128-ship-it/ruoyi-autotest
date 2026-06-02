@@ -1,12 +1,19 @@
 package com.ruoyi.autotest.gui.runner;
 
 import java.io.File;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 import javax.swing.JOptionPane;
 
+import org.testng.IConfigurationListener;
+import org.testng.ITestContext;
+import org.testng.ITestListener;
+import org.testng.ITestResult;
 import org.testng.TestNG;
 import org.testng.xml.XmlClass;
 import org.testng.xml.XmlInclude;
@@ -14,21 +21,27 @@ import org.testng.xml.XmlSuite;
 import org.testng.xml.XmlTest;
 
 /**
- * TestNG 动态测试运行器
- * 负责在 GUI 中动态创建 TestNG 实例并执行指定的测试类或测试方法
+ * Dynamic TestNG runner used by the Swing GUI.
  */
 public class TestRunner {
 
-    /** 若依系统的默认访问地址（可根据实际环境修改） */
+    private static final String DEPT_POST_TEST_CLASS = "com.ruoyi.autotest.test.DeptPostTest";
+
     private String baseUrl = "http://localhost";
 
-    /** 全部可用的测试方法名 */
     public static final String[] ALL_TEST_METHODS = {
+        // 用户与权限模块（组长）
         "testSingleModule_Login",
         "testSingleModule_UserQuery",
         "testIntegration_Depth3_AddRole",
         "testIntegration_Depth4_AddUserAndAssign",
-        "testDataDriven_Login"
+        "testDataDriven_Login",
+        // 系统监控与日志模块（组员5）
+        "testSingleModule_OperLogQuery",
+        "testSingleModule_LoginLogQuery",
+        "testIntegration_Depth3_CleanLog",
+        "testIntegration_Depth4_ForceLogout",
+        "testDataDriven_OperLogSearch"
     };
 
     /** 字典模块全部可用的测试方法名 */
@@ -58,11 +71,6 @@ public class TestRunner {
         System.setProperty("ruoyi.base.url", baseUrl);
     }
 
-    /**
-     * 在运行测试前检查 Edge 驱动文件是否存在（多路径搜索）
-     * 找到后自动设置系统属性为绝对路径，供 EdgeDriver 使用
-     * @return true 表示驱动就绪，false 表示驱动缺失
-     */
     public boolean checkEdgeDriver() {
         String[] candidatePaths = {
             "msedgedriver.exe",
@@ -74,7 +82,7 @@ public class TestRunner {
             File driverFile = new File(path);
             if (driverFile.exists()) {
                 String absolutePath = driverFile.getAbsolutePath();
-                System.out.println("[INFO] 找到 EdgeDriver: " + absolutePath);
+                System.out.println("[INFO] Found EdgeDriver: " + absolutePath);
                 System.setProperty("webdriver.edge.driver", absolutePath);
                 return true;
             }
@@ -82,92 +90,109 @@ public class TestRunner {
 
         JOptionPane.showMessageDialog(
             null,
-            "缺少 Edge 驱动文件！\n\n"
-                + "请将 msedgedriver.exe 下载并放入以下目录之一：\n"
-                + "  1. 项目根目录（与 pom.xml 同级）\n"
-                + "  2. src/main/resources 目录下\n"
-                + "  3. target 目录下\n\n"
-                + "下载地址：https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/",
+            "缺少 Edge 驱动文件：msedgedriver.exe\n\n"
+                + "请将 msedgedriver.exe 放到项目根目录、src/main/resources 或 target 目录。",
             "驱动缺失",
             JOptionPane.ERROR_MESSAGE
         );
         return false;
     }
 
-    /**
-     * 根据用户输入的测试用例编号或方法名，动态过滤并运行测试
-     *
-     * @param className   测试类的全限定名
-     * @param methodNames 用户指定要运行的方法名列表（为 null 或空列表则运行全部）
-     */
     public void runFilteredMethods(String className, List<String> methodNames) {
-        if (!checkEdgeDriver()) {
+        runFilteredMethods(className, methodNames, null);
+    }
+
+    public void runFilteredMethods(String className, List<String> methodNames, Consumer<String> logConsumer) {
+        Consumer<String> logger = logger(logConsumer);
+        if (!prepareRun(className, logger)) {
             return;
         }
-
-        System.setProperty("ruoyi.base.url", baseUrl);
 
         if (methodNames == null || methodNames.isEmpty()) {
-            runAllMethods(className);
+            runAllMethods(className, logger);
             return;
         }
 
-        TestNG testng = new TestNG();
-        testng.setVerbose(1);
+        logger.accept("开始执行 TestNG 指定方法");
+        logger.accept("实际执行测试类: " + className);
+        logger.accept("实际执行测试方法: " + String.join(", ", methodNames));
 
+        TestNG testng = createTestNG(logger, 1);
         XmlSuite suite = new XmlSuite();
-        suite.setName("RuoYiAutoTest - Filtered");
+        suite.setName("RuoYiAutoTest-GUI-Filtered");
         suite.setParallel(XmlSuite.ParallelMode.NONE);
 
         XmlTest test = new XmlTest(suite);
-        test.setName("FilteredTest");
+        test.setName("GUI-Filtered-Test");
 
         XmlClass xmlClass = new XmlClass(className);
         List<XmlInclude> includedMethods = new ArrayList<>();
         for (String name : methodNames) {
-            includedMethods.add(new XmlInclude(name.trim()));
+            if (name != null && !name.trim().isEmpty()) {
+                includedMethods.add(new XmlInclude(name.trim()));
+            }
         }
         xmlClass.setIncludedMethods(includedMethods);
-
-        List<XmlClass> classes = new ArrayList<>();
-        classes.add(xmlClass);
-        test.setXmlClasses(classes);
-
+        test.setXmlClasses(Collections.singletonList(xmlClass));
         testng.setXmlSuites(Collections.singletonList(suite));
 
-        try {
-            testng.run();
-        } catch (Exception e) {
-            System.err.println("[TestRunner] 测试执行异常: " + e.getMessage());
-            e.printStackTrace();
-        }
+        runTestNG(testng, logger);
     }
 
-    /**
-     * 运行测试类中的单个指定方法
-     */
     public void runSingleMethod(String className, String methodName) {
-        if (!checkEdgeDriver()) {
+        runFilteredMethods(className, Collections.singletonList(methodName), null);
+    }
+
+    public void runAllMethods(String className) {
+        runAllMethods(className, null);
+    }
+
+    public void runAllMethods(String className, Consumer<String> logConsumer) {
+        Consumer<String> logger = logger(logConsumer);
+        if (!prepareRun(className, logger)) {
             return;
         }
-        runFilteredMethods(className, Collections.singletonList(methodName));
+
+        logger.accept("开始执行 TestNG 全部方法");
+        logger.accept("实际执行测试类: " + className);
+        logger.accept("实际执行测试方法: 全部 @Test 方法");
+
+        TestNG testng = createTestNG(logger, 2);
+        try {
+            testng.setTestClasses(new Class<?>[]{loadClass(className)});
+        } catch (RuntimeException e) {
+            logger.accept("FAILED: " + e.getMessage());
+            logger.accept(stackTrace(e));
+            return;
+        }
+        runTestNG(testng, logger);
     }
 
-    /**
-     * 运行测试类中的所有方法
-     */
-    public void runAllMethods(String className) {
+    private boolean prepareRun(String className, Consumer<String> logger) {
+        if (requiresEdgeDriver(className) && !checkEdgeDriver()) {
+            logger.accept("FAILED: EdgeDriver 未就绪，已取消执行");
+            return false;
+        }
         System.setProperty("ruoyi.base.url", baseUrl);
+        logger.accept("Base URL: " + baseUrl);
+        return true;
+    }
 
+    private TestNG createTestNG(Consumer<String> logger, int verbose) {
         TestNG testng = new TestNG();
-        testng.setTestClasses(new Class<?>[]{loadClass(className)});
-        testng.setVerbose(2);
+        testng.setVerbose(verbose);
+        testng.setOutputDirectory("target/testng-gui-results");
+        testng.addListener(new GuiTestListener(logger));
+        return testng;
+    }
 
+    private void runTestNG(TestNG testng, Consumer<String> logger) {
         try {
             testng.run();
+            logger.accept("TestNG 执行结束");
         } catch (Exception e) {
-            System.err.println("[TestRunner] 测试执行异常: " + e.getMessage());
-            e.printStackTrace();
+            logger.accept("FAILED: TestNG 执行异常 - " + e.getMessage());
+            logger.accept(stackTrace(e));
         }
     }
 
@@ -176,6 +201,83 @@ public class TestRunner {
             return Class.forName(className);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException("无法加载测试类: " + className, e);
+        }
+    }
+
+    private boolean requiresEdgeDriver(String className) {
+        return !DEPT_POST_TEST_CLASS.equals(className);
+    }
+
+    private Consumer<String> logger(Consumer<String> logConsumer) {
+        return logConsumer == null ? System.out::println : logConsumer;
+    }
+
+    private static String stackTrace(Throwable throwable) {
+        StringWriter writer = new StringWriter();
+        throwable.printStackTrace(new PrintWriter(writer));
+        return writer.toString();
+    }
+
+    private static final class GuiTestListener implements ITestListener, IConfigurationListener {
+        private final Consumer<String> logger;
+
+        private GuiTestListener(Consumer<String> logger) {
+            this.logger = logger;
+        }
+
+        @Override
+        public void onTestStart(ITestResult result) {
+            logger.accept("STARTED: " + resultName(result));
+        }
+
+        @Override
+        public void onTestSuccess(ITestResult result) {
+            logger.accept("PASSED: " + resultName(result));
+        }
+
+        @Override
+        public void onTestFailure(ITestResult result) {
+            logger.accept("FAILED: " + resultName(result));
+            Throwable throwable = result.getThrowable();
+            if (throwable != null) {
+                logger.accept("异常信息: " + throwable);
+                logger.accept(stackTrace(throwable));
+            }
+        }
+
+        @Override
+        public void onTestSkipped(ITestResult result) {
+            logger.accept("SKIPPED: " + resultName(result));
+            Throwable throwable = result.getThrowable();
+            if (throwable != null) {
+                logger.accept("跳过原因: " + throwable);
+            }
+        }
+
+        @Override
+        public void onConfigurationFailure(ITestResult result) {
+            logger.accept("FAILED: 配置方法失败 - " + resultName(result));
+            Throwable throwable = result.getThrowable();
+            if (throwable != null) {
+                logger.accept("异常信息: " + throwable);
+                logger.accept(stackTrace(throwable));
+            }
+        }
+
+        @Override
+        public void onConfigurationSkip(ITestResult result) {
+            logger.accept("SKIPPED: 配置方法跳过 - " + resultName(result));
+        }
+
+        @Override
+        public void onFinish(ITestContext context) {
+            logger.accept("结果汇总: PASSED=" + context.getPassedTests().size()
+                + ", FAILED=" + context.getFailedTests().size()
+                + ", SKIPPED=" + context.getSkippedTests().size());
+        }
+
+        private String resultName(ITestResult result) {
+            return result.getTestClass().getName() + "." + result.getMethod().getMethodName();
         }
     }
 }
