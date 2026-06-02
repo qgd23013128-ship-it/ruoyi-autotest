@@ -11,17 +11,17 @@
 					<div class="select-list">
 						<ul>
 							<li>
-								菜单名称：<input type="text" name="menuName"/>
+								菜单名称：<input type="text" name="menuName" id="menuNameInput"/>
 							</li>
 							<li>
-								菜单状态：<select name="visible" th:with="type=${@dict.getType('sys_show_hide')}">
+								菜单状态：<select name="visible" id="visibleSelect" th:with="type=${@dict.getType('sys_show_hide')}">
 									<option value="">所有</option>
 									<option th:each="dict : ${type}" th:text="${dict.dictLabel}" th:value="${dict.dictValue}"></option>
 								</select>
 							</li>
 							<li>
-								<a class="btn btn-primary btn-rounded btn-sm" onclick="$.treeTable.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
-								<a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+								<a class="btn btn-primary btn-rounded btn-sm" id="menuSearchBtn" onclick="$.treeTable.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+								<a class="btn btn-warning btn-rounded btn-sm" id="menuResetBtn" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
 							</li>
 						</ul>
 					</div>
