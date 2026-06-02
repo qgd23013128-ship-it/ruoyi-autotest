@@ -9,6 +9,7 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -340,71 +341,221 @@ public class MonitorLogPanel extends JPanel {
     }
 
     private void runPerformanceTest() {
-        appendLogSeparator("执行性能测试（JMeter命令行）");
+        appendLogSeparator("执行性能测试（JMeter命令模式）");
         new Thread(() -> {
-            appendLog("[性能测试] 正在自动搜索本机 JMeter 安装...");
+            // 1. 查找 JMeter
+            appendLog("[性能测试] 正在搜索本机 JMeter 安装...");
             String jmeterHome = findJmeterHome();
             if (jmeterHome == null) {
-                appendLog("[性能测试] 未找到 JMeter，请下载解压到 C:\\apache-jmeter 目录");
+                appendLog("[性能测试] 未找到 JMeter，请检查 E:\\apache-jmeter-5.6.3 是否存在");
                 return;
             }
             appendLog("[性能测试] 已找到 JMeter: " + jmeterHome);
 
-            String scriptPath = jmeterHome + "\\bin\\RuoYi_MonitorLog_Test.jmx";
-            String jmeterCmd = jmeterHome + "\\bin\\jmeter.bat";
-
-            java.io.File scriptFile = new java.io.File(scriptPath);
-            if (!scriptFile.exists()) {
-                appendLog("[性能测试] JMX脚本文件不存在: " + scriptPath);
-                appendLog("[性能测试] 请将 JMX 测试脚本放置于: " + scriptPath);
+            // 2. 定位 JMX 脚本（优先找当前项目目录下的 jmeter 子目录）
+            String jmxPath = findJmxScript();
+            if (jmxPath == null) {
                 return;
             }
+            appendLog("[性能测试] JMX脚本: " + jmxPath);
 
-            appendLog("[性能测试] 正在启动 JMeter...");
+            // 3. 准备输出路径
+            String resultDir = new java.io.File(jmxPath).getParent();
+            String jtlFile = resultDir + File.separator + "result.jtl";
+            String reportDir = resultDir + File.separator + "report";
+
+            // 清理旧结果
+            new java.io.File(jtlFile).delete();
+            deleteDirectory(new java.io.File(reportDir));
+            new java.io.File(reportDir).mkdirs();
+
+            // 4. 执行 JMeter（用 java -jar ApacheJMeter.jar，避免依赖 .bat）
+            String javaBin = findJava17();
+            String jmeterJar = jmeterHome + File.separator + "bin" + File.separator + "ApacheJMeter.jar";
+
+            appendLog("[性能测试] 正在启动 JMeter 150 并发压测，请等待...");
             try {
-                String resultFile = "jmeter_monitorlog_result.jtl";
                 ProcessBuilder pb = new ProcessBuilder(
-                    jmeterCmd, "-n", "-t", scriptPath,
-                    "-l", resultFile
+                    javaBin, "-jar", jmeterJar,
+                    "-n", "-t", jmxPath,
+                    "-l", jtlFile,
+                    "-e", "-o", reportDir
                 );
-                pb.inheritIO();
+                pb.directory(new java.io.File(resultDir));
+                pb.redirectErrorStream(true);
                 Process process = pb.start();
+
+                // 读取 JMeter 实时输出
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(process.getInputStream(), "UTF-8"))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        final String logLine = line;
+                        SwingUtilities.invokeLater(() -> {
+                            if (logLine.contains("Err:")) {
+                                // 只显示关键摘要行
+                                String summary = logLine.replaceAll("summary \\+", "");
+                                appendLog("[JMeter] " + summary.trim());
+                            }
+                        });
+                    }
+                }
+
                 int exitCode = process.waitFor();
                 if (exitCode == 0) {
-                    appendLog("[性能测试] 性能测试执行完毕，结果文件: " + new java.io.File(resultFile).getAbsolutePath());
+                    appendLog("[性能测试] 测试执行完毕！");
+                    showPerformanceSummary(jtlFile);
+                    // 尝试打开 HTML 报告
+                    openReportInBrowser(reportDir + File.separator + "index.html");
                 } else {
                     appendLog("[性能测试] JMeter 执行异常，退出码: " + exitCode);
                 }
             } catch (Exception ex) {
                 appendLog("[性能测试] 执行异常: " + ex.getMessage());
+                ex.printStackTrace();
             }
         }).start();
     }
 
-    private String findJmeterHome() {
-        String envHome = System.getenv("JMETER_HOME");
-        if (envHome != null && !envHome.isEmpty()) {
-            java.io.File f = new java.io.File(envHome, "bin\\jmeter.bat");
-            if (f.exists()) return envHome;
+    /**
+     * 显示性能测试汇总结果（从 JTL 统计）
+     */
+    private void showPerformanceSummary(String jtlFile) {
+        java.io.File f = new java.io.File(jtlFile);
+        if (!f.exists()) {
+            appendLog("[性能测试] 未找到结果文件，无法统计");
+            return;
         }
+        try (java.io.BufferedReader br = new java.io.BufferedReader(
+                new java.io.FileReader(jtlFile))) {
+            String header = br.readLine(); // 跳过 CSV 头
+            if (header == null) return;
+
+            int totalSamples = 0;
+            int totalErrors = 0;
+            long totalTime = 0;
+            long minTime = Long.MAX_VALUE;
+            long maxTime = Long.MIN_VALUE;
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length < 9) continue;
+                try {
+                    totalSamples++;
+                    long elapsed = Long.parseLong(parts[1]);
+                    totalTime += elapsed;
+                    minTime = Math.min(minTime, elapsed);
+                    maxTime = Math.max(maxTime, elapsed);
+                    if (!"true".equals(parts[8])) {
+                        totalErrors++;
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+            }
+
+            double errorPct = totalSamples > 0 ? (totalErrors * 100.0 / totalSamples) : 0;
+            double avgTime = totalSamples > 0 ? (totalTime / (double) totalSamples) : 0;
+
+            appendLog("");
+            appendLog("========== 性能测试结果汇总 ==========");
+            appendLog(String.format("  总样本数: %d", totalSamples));
+            appendLog(String.format("  错误数:   %d (%.2f%%)", totalErrors, errorPct));
+            appendLog(String.format("  平均响应: %.2f ms", avgTime));
+            appendLog(String.format("  最小响应: %d ms", minTime));
+            appendLog(String.format("  最大响应: %d ms", maxTime));
+            appendLog("======================================");
+            appendLog("");
+
+            if (errorPct == 0 && totalSamples >= 100) {
+                appendLog("[PASS] 满足实验要求：Samples >= 100 且 Error%% = 0.00%%");
+            } else {
+                appendLog("[WARN] 未达到实验要求指标，请检查测试配置");
+            }
+        } catch (Exception e) {
+            appendLog("[性能测试] 读取结果异常: " + e.getMessage());
+        }
+    }
+
+    private String findJmxScript() {
+        // 搜索路径：项目 jmeter 目录、当前目录、类路径
+        String[] searchPaths = {
+            "jmeter" + File.separator + "monitor_perf_test.jmx",
+            "ruoyi-autotest-gui" + File.separator + "jmeter" + File.separator + "monitor_perf_test.jmx",
+            ".." + File.separator + "ruoyi-autotest-gui" + File.separator + "jmeter" + File.separator + "monitor_perf_test.jmx",
+            System.getProperty("user.dir") + File.separator + "jmeter" + File.separator + "monitor_perf_test.jmx",
+        };
+        for (String path : searchPaths) {
+            java.io.File f = new java.io.File(path);
+            if (f.exists()) {
+                return f.getAbsolutePath();
+            }
+        }
+        appendLog("[性能测试] 未找到 JMX 脚本文件 monitor_perf_test.jmx");
+        appendLog("[性能测试] 请将脚本放置于 jmeter/ 目录下");
+        return null;
+    }
+
+    private String findJava17() {
+        // 优先使用 JAVA_HOME 指向的 java
+        String javaHome = System.getenv("JAVA_HOME");
+        if (javaHome != null && !javaHome.isEmpty()) {
+            String java = javaHome + File.separator + "bin" + File.separator + "java";
+            if (new java.io.File(java).exists()) return java;
+        }
+        // 回退到 PATH 中的 java
+        return "java";
+    }
+
+    private void openReportInBrowser(String htmlPath) {
+        java.io.File reportFile = new java.io.File(htmlPath);
+        if (!reportFile.exists()) return;
+        try {
+            java.awt.Desktop.getDesktop().browse(reportFile.toURI());
+            appendLog("[性能测试] 已打开 HTML 报告");
+        } catch (Exception e) {
+            appendLog("[性能测试] 报告路径: " + reportFile.getAbsolutePath());
+            appendLog("[性能测试] 请手动在浏览器中打开以上路径查看完整报告");
+        }
+    }
+
+    private void deleteDirectory(java.io.File dir) {
+        if (dir == null || !dir.exists()) return;
+        java.io.File[] files = dir.listFiles();
+        if (files != null) {
+            for (java.io.File f : files) {
+                if (f.isDirectory()) deleteDirectory(f);
+                else f.delete();
+            }
+        }
+        dir.delete();
+    }
+
+    private String findJmeterHome() {
+        // 优先检测本机已安装的路径
         String[] searchDirs = {
+            "E:\\apache-jmeter-5.6.3",
+            "E:\\apache-jmeter-5.6.2",
             "C:\\apache-jmeter\\apache-jmeter-5.6.3",
             "C:\\apache-jmeter\\apache-jmeter-5.6.2",
-            "C:\\apache-jmeter\\apache-jmeter-5.5",
-            "D:\\apache-jmeter\\apache-jmeter-5.6.3",
-            "D:\\apache-jmeter\\apache-jmeter-5.6.2",
         };
+        String envHome = System.getenv("JMETER_HOME");
+        if (envHome != null && !envHome.isEmpty()) {
+            java.io.File f = new java.io.File(envHome, "bin" + File.separator + "ApacheJMeter.jar");
+            if (f.exists()) return envHome;
+        }
         for (String dir : searchDirs) {
-            java.io.File f = new java.io.File(dir, "bin\\jmeter.bat");
+            java.io.File f = new java.io.File(dir, "bin" + File.separator + "ApacheJMeter.jar");
             if (f.exists()) return dir;
         }
+        // 通用搜索 C:\apache-jmeter\ 下的子目录
         java.io.File cRoot = new java.io.File("C:\\apache-jmeter");
         if (cRoot.isDirectory()) {
             java.io.File[] subs = cRoot.listFiles();
             if (subs != null) {
                 for (java.io.File sub : subs) {
                     if (sub.isDirectory()) {
-                        java.io.File f = new java.io.File(sub, "bin\\jmeter.bat");
+                        java.io.File f = new java.io.File(sub, "bin" + File.separator + "ApacheJMeter.jar");
                         if (f.exists()) return sub.getAbsolutePath();
                     }
                 }
