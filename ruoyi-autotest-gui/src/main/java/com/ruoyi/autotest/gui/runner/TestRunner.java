@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
-import javax.swing.JOptionPane;
 
 import org.testng.IConfigurationListener;
 import org.testng.ITestContext;
@@ -71,7 +70,7 @@ public class TestRunner {
         System.setProperty("ruoyi.base.url", baseUrl);
     }
 
-    public boolean checkEdgeDriver() {
+    public boolean checkEdgeDriver(Consumer<String> logger) {
         String[] candidatePaths = {
             "msedgedriver.exe",
             "src/main/resources/msedgedriver.exe",
@@ -88,13 +87,7 @@ public class TestRunner {
             }
         }
 
-        JOptionPane.showMessageDialog(
-            null,
-            "缺少 Edge 驱动文件：msedgedriver.exe\n\n"
-                + "请将 msedgedriver.exe 放到项目根目录、src/main/resources 或 target 目录。",
-            "驱动缺失",
-            JOptionPane.ERROR_MESSAGE
-        );
+        logger.accept("[警告] 缺少 msedgedriver.exe, 当前只支持 Chrome 驱动测试。");
         return false;
     }
 
@@ -169,8 +162,8 @@ public class TestRunner {
     }
 
     private boolean prepareRun(String className, Consumer<String> logger) {
-        if (requiresEdgeDriver(className) && !checkEdgeDriver()) {
-            logger.accept("FAILED: EdgeDriver 未就绪，已取消执行");
+        if (requiresEdgeDriver(className) && !checkEdgeDriver(logger)) {
+            logger.accept("[跳过] EdgeDriver 未就绪，已取消执行");
             return false;
         }
         System.setProperty("ruoyi.base.url", baseUrl);

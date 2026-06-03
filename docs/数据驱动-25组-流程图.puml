@@ -1,0 +1,40 @@
+@startuml
+title 数据驱动测试：25组新增公告数据 — 业务流程图
+
+start
+
+:初始化25组测试数据\n(@DataProvider注入);
+
+repeat
+  :加载下一组数据\n(标题/内容/类型/状态/预期结果);
+  :登录 admin / admin123;
+  :直达 /system/notice;
+  :点击 [新增] 按钮;
+  :切入弹窗 iframe;
+
+  if (标题?) then (有值)
+    :填写标题;
+  else (空/NULL)
+    :跳过标题;
+  endif
+
+  :选择公告类型 (通知/提醒);
+  :选择状态 (正常/关闭);
+  :填写内容;
+
+  :点击 [确定] 保存;
+  :检测 Toast 提示;
+
+  if (实际结果 = 预期结果?) then (是)
+    :✅ 数据集通过;
+  else (否)
+    :⚠ 预期不匹配;
+  endif
+
+repeat while (还有下一组?) is (是)
+->否;
+
+:全部25组执行完毕;
+stop
+
+@enduml

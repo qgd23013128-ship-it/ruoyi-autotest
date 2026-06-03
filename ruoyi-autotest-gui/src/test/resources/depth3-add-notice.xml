@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="深度3-新增公告" verbose="2" parallel="none">
+    <test name="集成深度3(1用例)">
+        <classes>
+            <class name="com.ruoyi.autotest.test.ParamNoticeTest">
+                <methods>
+                    <include name="testIntegration_AddNoticeDepth3"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>

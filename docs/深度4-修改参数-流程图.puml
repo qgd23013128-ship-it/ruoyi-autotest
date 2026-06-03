@@ -1,0 +1,43 @@
+@startuml
+title 集成深度4：修改参数 — 业务流程图
+
+start
+
+:【深度1】显示全屏横幅\n"登录若依管理系统";
+:导航至 /login;
+:输入账号 admin;
+:输入密码 admin123;
+:点击登录;
+
+:【深度2】显示全屏横幅\n"进入参数设置页面";
+:直达 /system/config;
+:等待参数表格加载;
+
+:定位 input[name='configKey'];
+:输入 "sys.account.registerUser";
+:点击搜索;
+:等待搜索结果出现;
+
+:【深度3】显示全屏横幅\n"搜索参数: sys.account.registerUser\n结果已显示";
+
+:勾选搜索结果行的复选框;
+:点击 [修改] 按钮;
+:切入弹窗 iframe;
+
+:定位 #configValue 输入框;
+:清空原值 → 输入 "true";
+
+:【深度4】显示全屏横幅\n"修改参数: sys.account.registerUser\n将参数值改为: true\n即将保存...";
+
+:点击 [确定] 保存;
+
+if (Toast = "操作成功"?) then (是)
+    :✅ 验证通过;
+else (否)
+    :❌ 验证失败;
+endif
+
+:保持浏览器打开;
+stop
+
+@enduml

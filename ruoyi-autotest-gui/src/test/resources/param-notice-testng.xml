@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="参数与通知公告模块测试套件" verbose="1" parallel="false">
+
+    <test name="参数与公告 - 单模块测试(4用例)">
+        <classes>
+            <class name="com.ruoyi.autotest.test.ParamNoticeTest">
+                <methods>
+                    <include name="testSingleModule_ConfigQueryByName"/>
+                    <include name="testSingleModule_ConfigQueryByKey"/>
+                    <include name="testSingleModule_NoticeQueryList"/>
+                    <include name="testSingleModule_NoticeQueryByTitle"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="参数与公告 - 集成测试(2用例)">
+        <classes>
+            <class name="com.ruoyi.autotest.test.ParamNoticeTest">
+                <methods>
+                    <include name="testIntegration_AddNoticeDepth3"/>
+                    <include name="testIntegration_ModifyConfigDepth4"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <test name="参数与公告 - 数据驱动测试(25组)">
+        <classes>
+            <class name="com.ruoyi.autotest.test.ParamNoticeTest">
+                <methods>
+                    <include name="testDataDriven_AddNotice25Cases"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+</suite>

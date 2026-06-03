@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="参数与通知公告 - 全量自动化测试" verbose="2" parallel="none">
+
+    <test name="全部测试(31用例-同浏览器窗口顺序执行)">
+        <classes>
+            <class name="com.ruoyi.autotest.test.ParamNoticeTest">
+                <methods>
+                    <!-- 单模块：参数查询、公告查询 (4个) -->
+                    <include name="testSingleModule_ConfigQueryByName"/>
+                    <include name="testSingleModule_ConfigQueryByKey"/>
+                    <include name="testSingleModule_NoticeQueryList"/>
+                    <include name="testSingleModule_NoticeQueryByTitle"/>
+                    <!-- 集成深度3：新增公告 -->
+                    <include name="testIntegration_AddNoticeDepth3"/>
+                    <!-- 集成深度4：修改参数 -->
+                    <include name="testIntegration_ModifyConfigDepth4"/>
+                    <!-- 数据驱动：25组新增公告 -->
+                    <include name="testDataDriven_AddNotice25Cases"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+</suite>
